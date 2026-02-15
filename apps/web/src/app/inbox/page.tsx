@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { api } from "@/lib/api";
+import { useToast } from "@/contexts/ToastContext";
 
 interface Conversation {
   id: string;
@@ -21,6 +22,7 @@ interface ConversationDetailData extends Omit<Conversation, "messages"> {
 }
 
 export default function InboxPage() {
+  const toast = useToast();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<ConversationDetailData | null>(null);
@@ -39,7 +41,7 @@ export default function InboxPage() {
       const list = await api<Conversation[]>(`/api/conversations?${params}`);
       setConversations(list);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Sync failed");
+      toast.error(e instanceof Error ? e.message : "Sync failed");
     } finally {
       setSyncing(false);
     }
@@ -76,13 +78,13 @@ export default function InboxPage() {
 
   return (
     <AppLayout>
-      <div className="flex gap-4 h-[calc(100vh-6rem)]">
-        <div className="w-80 flex flex-col border border-slate-800 rounded-lg overflow-hidden">
-          <div className="p-3 border-b border-slate-800 space-y-2">
+      <div className="flex gap-4 h-[calc(100vh-8rem)]">
+        <div className="w-80 flex flex-col bg-white border border-[rgba(55,53,47,0.09)] rounded-lg overflow-hidden shadow-sm">
+          <div className="p-3 border-b border-[rgba(55,53,47,0.09)] space-y-2">
             <button
               onClick={handleSync}
               disabled={syncing}
-              className="w-full py-2 rounded bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-sm"
+              className="w-full py-2.5 rounded-md bg-[#2383e2] hover:bg-[#0d6bcc] disabled:opacity-50 text-[14px] font-medium text-white transition"
             >
               {syncing ? "Syncing..." : "Sync from platforms"}
             </button>
@@ -90,12 +92,12 @@ export default function InboxPage() {
               placeholder="Filter by campaign..."
               value={filters.campaignId}
               onChange={(e) => setFilters((f) => ({ ...f, campaignId: e.target.value }))}
-              className="w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 text-sm"
+              className="w-full px-3 py-2 rounded-md border border-[rgba(55,53,47,0.2)] text-[14px] focus:border-[#2383e2] focus:ring-1 focus:ring-[#2383e2] outline-none transition"
             />
             <select
               value={filters.status}
               onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
-              className="w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 text-sm"
+              className="w-full px-3 py-2 rounded-md border border-[rgba(55,53,47,0.2)] text-[14px] focus:border-[#2383e2] outline-none transition bg-white"
             >
               <option value="">All statuses</option>
               <option value="OPEN">Open</option>
@@ -105,7 +107,7 @@ export default function InboxPage() {
             <select
               value={filters.platform}
               onChange={(e) => setFilters((f) => ({ ...f, platform: e.target.value }))}
-              className="w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 text-sm"
+              className="w-full px-3 py-2 rounded-md border border-[rgba(55,53,47,0.2)] text-[14px] focus:border-[#2383e2] outline-none transition bg-white"
             >
               <option value="">All platforms</option>
               <option value="INSTANTLY">Instantly</option>
@@ -114,34 +116,46 @@ export default function InboxPage() {
           </div>
           <div className="flex-1 overflow-y-auto">
             {loading ? (
-              <p className="p-4 text-slate-500">Loading...</p>
+              <div className="p-4 space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-16 rounded-md bg-[rgba(55,53,47,0.06)] animate-pulse" />
+                ))}
+              </div>
             ) : conversations.length === 0 ? (
-              <p className="p-4 text-slate-500">No conversations</p>
+              <div className="p-6 text-center">
+                <p className="text-[#6b6b6b] mb-2 text-[14px]">No conversations yet</p>
+                <p className="text-[13px] text-[#9b9a97] mb-4">
+                  Add platform connections in Settings, then sync or run <code className="text-xs bg-[rgba(55,53,47,0.08)] px-1.5 py-0.5 rounded">npm run seed:demo</code>
+                </p>
+                <a href="/settings" className="text-[#2383e2] hover:underline text-[14px]">
+                  Go to Settings
+                </a>
+              </div>
             ) : (
               conversations.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setSelected(c.id)}
-                  className={`w-full text-left p-4 border-b border-slate-800 hover:bg-slate-800/50 transition ${
-                    selected === c.id ? "bg-slate-800" : ""
+                  className={`w-full text-left p-4 border-b border-[rgba(55,53,47,0.06)] hover:bg-[rgba(55,53,47,0.04)] transition ${
+                    selected === c.id ? "bg-[rgba(55,53,47,0.08)]" : ""
                   }`}
                 >
-                  <div className="font-medium truncate">
+                  <div className="font-medium truncate text-[14px] text-[#37352f]">
                     {c.lead.firstName || c.lead.lastName
                       ? `${c.lead.firstName || ""} ${c.lead.lastName || ""}`.trim()
                       : c.lead.email}
                   </div>
-                  <div className="text-sm text-slate-500 truncate">
+                  <div className="text-[13px] text-[#6b6b6b] truncate">
                     {c.campaignName || c.lead.email}
                   </div>
-                  <div className="flex gap-1 mt-1">
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-slate-700">
+                  <div className="flex gap-1 mt-1.5 flex-wrap">
+                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-[rgba(55,53,47,0.08)] text-[#6b6b6b]">
                       {c.platform}
                     </span>
                     {c.labels.map((l) => (
                       <span
                         key={l.label}
-                        className="text-xs px-1.5 py-0.5 rounded bg-cyan-900/50"
+                        className="text-[11px] px-1.5 py-0.5 rounded bg-[#e3f2fd] text-[#2383e2]"
                       >
                         {l.label}
                       </span>
@@ -152,11 +166,11 @@ export default function InboxPage() {
             )}
           </div>
         </div>
-        <div className="flex-1 border border-slate-800 rounded-lg overflow-hidden flex flex-col">
+        <div className="flex-1 border border-[rgba(55,53,47,0.09)] rounded-lg overflow-hidden flex flex-col bg-white shadow-sm">
           {detail ? (
             <ConversationDetail conversation={detail} onUpdate={refetchDetail} />
           ) : (
-            <div className="flex-1 flex items-center justify-center text-slate-500">
+            <div className="flex-1 flex items-center justify-center text-[#9b9a97] text-[14px]">
               Select a conversation
             </div>
           )}
@@ -188,7 +202,7 @@ function StatusSelect({
     <select
       value={status}
       onChange={handleChange}
-      className="text-xs px-2 py-1 rounded bg-slate-700 border-0 cursor-pointer"
+      className="text-[12px] px-2 py-1 rounded-md border border-[rgba(55,53,47,0.2)] cursor-pointer bg-white focus:outline-none focus:ring-1 focus:ring-[#2383e2]"
     >
       <option value="OPEN">Open</option>
       <option value="PENDING">Pending</option>
@@ -229,8 +243,8 @@ function LabelButtons({
         <button
           key={l}
           onClick={() => toggle(l)}
-          className={`text-xs px-2 py-1 rounded cursor-pointer ${
-            labels.some((x) => x.label === l) ? "bg-cyan-700" : "bg-slate-700 hover:bg-slate-600"
+          className={`text-[12px] px-2 py-1 rounded-md cursor-pointer transition ${
+            labels.some((x) => x.label === l) ? "bg-[#2383e2] text-white" : "bg-[rgba(55,53,47,0.08)] text-[#6b6b6b] hover:bg-[rgba(55,53,47,0.16)]"
           }`}
         >
           {l.replace("_", " ")}
@@ -241,6 +255,7 @@ function LabelButtons({
 }
 
 function ConversationDetail({ conversation, onUpdate }: { conversation: ConversationDetailData; onUpdate: () => void }) {
+  const toast = useToast();
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -258,9 +273,10 @@ function ConversationDetail({ conversation, onUpdate }: { conversation: Conversa
         }),
       });
       setReply("");
+      toast.success("Reply sent");
       onUpdate();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to send");
+      toast.error(e instanceof Error ? e.message : "Failed to send");
     } finally {
       setSending(false);
     }
@@ -275,7 +291,7 @@ function ConversationDetail({ conversation, onUpdate }: { conversation: Conversa
       });
       setReply(draft);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to generate");
+      toast.error(e instanceof Error ? e.message : "Failed to generate");
     } finally {
       setAiLoading(false);
     }
@@ -291,7 +307,7 @@ function ConversationDetail({ conversation, onUpdate }: { conversation: Conversa
       setNote("");
       onUpdate();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to add note");
+      toast.error(e instanceof Error ? e.message : "Failed to add note");
     }
   }
 
@@ -299,53 +315,53 @@ function ConversationDetail({ conversation, onUpdate }: { conversation: Conversa
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-slate-800">
-        <h2 className="font-semibold">
+      <div className="p-4 border-b border-[rgba(55,53,47,0.09)]">
+        <h2 className="font-semibold text-[#37352f] text-[15px]">
           {conversation.lead.firstName || conversation.lead.lastName
             ? `${conversation.lead.firstName || ""} ${conversation.lead.lastName || ""}`.trim()
             : conversation.lead.email}
         </h2>
-        <p className="text-sm text-slate-500">{conversation.lead.email}</p>
+        <p className="text-[13px] text-[#6b6b6b]">{conversation.lead.email}</p>
         <div className="flex gap-2 mt-2 flex-wrap items-center">
-          <span className="text-xs px-2 py-1 rounded bg-slate-700">{conversation.platform}</span>
+          <span className="text-[11px] px-2 py-0.5 rounded bg-[rgba(55,53,47,0.08)] text-[#6b6b6b]">{conversation.platform}</span>
           <StatusSelect conversationId={conversation.id} status={conversation.status} onUpdate={onUpdate} />
           {conversation.campaignName && (
-            <span className="text-xs px-2 py-1 rounded bg-cyan-900/50">
+            <span className="text-[11px] px-2 py-0.5 rounded bg-[#e3f2fd] text-[#2383e2]">
               {conversation.campaignName}
             </span>
           )}
           <LabelButtons conversationId={conversation.id} labels={(conversation as { labels?: { label: string }[] }).labels || []} onUpdate={onUpdate} />
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#fafafa]">
         {messages.map((m) => (
           <div
             key={m.id}
             className={`p-3 rounded-lg ${
-              m.direction === "IN" ? "bg-slate-800/50 ml-0" : "bg-cyan-900/20 mr-0 ml-8"
+              m.direction === "IN" ? "bg-white border border-[rgba(55,53,47,0.09)] ml-0" : "bg-[#e3f2fd] border border-[rgba(35,131,226,0.3)] mr-0 ml-8"
             }`}
           >
-            <div className="text-xs text-slate-500 mb-1">
+            <div className="text-[12px] text-[#9b9a97] mb-1">
               {m.fromEmail} • {new Date(m.sentAt).toLocaleString()}
             </div>
-            <div className="text-sm whitespace-pre-wrap">
+            <div className="text-[14px] whitespace-pre-wrap text-[#37352f] leading-relaxed">
               {(m.bodyText || m.bodyHtml || "").slice(0, 500)}
             </div>
           </div>
         ))}
         {(conversation.notes || []).map((n, i) => (
-          <div key={i} className="p-3 rounded-lg bg-amber-900/20 border border-amber-800/30">
-            <div className="text-xs text-amber-600">{n.user?.name || "Note"}</div>
-            <div className="text-sm">{n.content}</div>
+          <div key={i} className="p-3 rounded-lg bg-[#fff8e6] border border-[rgba(245,193,78,0.4)]">
+            <div className="text-[12px] text-[#b8860b]">{n.user?.name || "Note"}</div>
+            <div className="text-[14px] text-[#37352f]">{n.content}</div>
           </div>
         ))}
       </div>
-      <div className="p-4 border-t border-slate-800 space-y-2">
+      <div className="p-4 border-t border-[rgba(55,53,47,0.09)] space-y-2 bg-white">
         <div className="flex gap-2">
           <button
             onClick={handleGenerateAi}
             disabled={aiLoading}
-            className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-sm disabled:opacity-50"
+            className="px-3 py-2 rounded-md bg-[rgba(55,53,47,0.08)] hover:bg-[rgba(55,53,47,0.16)] text-[14px] text-[#37352f] disabled:opacity-50 transition"
           >
             {aiLoading ? "Generating..." : "Generate AI draft"}
           </button>
@@ -354,13 +370,13 @@ function ConversationDetail({ conversation, onUpdate }: { conversation: Conversa
           value={reply}
           onChange={(e) => setReply(e.target.value)}
           placeholder="Type your reply..."
-          className="w-full px-3 py-2 rounded bg-slate-800 border border-slate-700 min-h-[80px] resize-y"
+          className="w-full px-3 py-2.5 rounded-md border border-[rgba(55,53,47,0.2)] min-h-[80px] resize-y text-[14px] focus:border-[#2383e2] focus:ring-1 focus:ring-[#2383e2] outline-none transition"
           rows={4}
         />
         <button
           onClick={handleSendReply}
           disabled={sending || !reply.trim()}
-          className="px-4 py-2 rounded bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50"
+          className="px-4 py-2.5 rounded-md bg-[#2383e2] hover:bg-[#0d6bcc] text-white font-medium text-[14px] disabled:opacity-50 transition"
         >
           {sending ? "Sending..." : "Send reply"}
         </button>
@@ -369,12 +385,12 @@ function ConversationDetail({ conversation, onUpdate }: { conversation: Conversa
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Add internal note..."
-            className="flex-1 px-3 py-2 rounded bg-slate-800 border border-slate-700 text-sm"
+            className="flex-1 px-3 py-2 rounded-md border border-[rgba(55,53,47,0.2)] text-[14px] focus:border-[#2383e2] focus:ring-1 focus:ring-[#2383e2] outline-none transition"
           />
           <button
             onClick={handleAddNote}
             disabled={!note.trim()}
-            className="px-3 py-2 rounded bg-amber-800/50 hover:bg-amber-800 disabled:opacity-50 text-sm"
+            className="px-3 py-2 rounded-md bg-[#fff8e6] hover:bg-[#ffecb3] text-[#b8860b] disabled:opacity-50 text-[14px] font-medium transition"
           >
             Add note
           </button>

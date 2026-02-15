@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { api } from "@/lib/api";
+import { useToast } from "@/contexts/ToastContext";
 
 interface Connection {
   id: string;
@@ -13,6 +14,7 @@ interface Connection {
 }
 
 export default function SettingsPage() {
+  const toast = useToast();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [platform, setPlatform] = useState<"INSTANTLY" | "PLUSVIBE">("INSTANTLY");
   const [apiKey, setApiKey] = useState("");
@@ -41,8 +43,9 @@ export default function SettingsPage() {
       setWorkspaceId("");
       const list = await api<Connection[]>("/api/platform/connections");
       setConnections(list);
+      toast.success("Connection added");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to add");
+      toast.error(e instanceof Error ? e.message : "Failed to add");
     } finally {
       setAdding(false);
     }
@@ -52,22 +55,23 @@ export default function SettingsPage() {
     try {
       await api(`/api/platform/connections/${id}`, { method: "DELETE" });
       setConnections((prev) => prev.filter((c) => c.id !== id));
+      toast.success("Connection removed");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to remove");
+      toast.error(e instanceof Error ? e.message : "Failed to remove");
     }
   }
 
   return (
     <AppLayout>
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
-      <div className="max-w-xl space-y-6">
+      <h1 className="text-[22px] font-semibold mb-6 text-[#37352f]">Settings</h1>
+      <div className="max-w-xl space-y-8">
         <section>
-          <h2 className="text-lg font-semibold mb-4">Platform connections</h2>
+          <h2 className="text-[15px] font-semibold mb-4 text-[#37352f]">Platform connections</h2>
           <div className="space-y-3 mb-4">
             <select
               value={platform}
               onChange={(e) => setPlatform(e.target.value as "INSTANTLY" | "PLUSVIBE")}
-              className="w-full px-3 py-2 rounded bg-slate-800 border border-slate-700"
+              className="w-full px-3 py-2.5 rounded-md border border-[rgba(55,53,47,0.2)] text-[14px] focus:border-[#2383e2] focus:ring-1 focus:ring-[#2383e2] outline-none transition bg-white"
             >
               <option value="INSTANTLY">Instantly</option>
               <option value="PLUSVIBE">PlusVibe</option>
@@ -77,18 +81,18 @@ export default function SettingsPage() {
               placeholder="API Key"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              className="w-full px-3 py-2 rounded bg-slate-800 border border-slate-700"
+              className="w-full px-3 py-2.5 rounded-md border border-[rgba(55,53,47,0.2)] text-[14px] focus:border-[#2383e2] focus:ring-1 focus:ring-[#2383e2] outline-none transition"
             />
             <input
               placeholder={platform === "PLUSVIBE" ? "Workspace ID (required)" : "Workspace/Org ID (optional)"}
               value={workspaceId}
               onChange={(e) => setWorkspaceId(e.target.value)}
-              className="w-full px-3 py-2 rounded bg-slate-800 border border-slate-700"
+              className="w-full px-3 py-2.5 rounded-md border border-[rgba(55,53,47,0.2)] text-[14px] focus:border-[#2383e2] focus:ring-1 focus:ring-[#2383e2] outline-none transition"
             />
             <button
               onClick={handleAddConnection}
               disabled={adding || !apiKey.trim()}
-              className="px-4 py-2 rounded bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50"
+              className="px-4 py-2.5 rounded-md bg-[#2383e2] hover:bg-[#0d6bcc] text-white font-medium text-[14px] disabled:opacity-50 transition"
             >
               {adding ? "Adding..." : "Add connection"}
             </button>
@@ -97,17 +101,17 @@ export default function SettingsPage() {
             {connections.map((c) => (
               <li
                 key={c.id}
-                className="flex items-center justify-between p-3 rounded bg-slate-800 border border-slate-700"
+                className="flex items-center justify-between p-3 rounded-md bg-white border border-[rgba(55,53,47,0.09)] shadow-sm"
               >
-                <span>
+                <span className="text-[14px] text-[#37352f]">
                   {c.platform}
                   {c.workspaceId && (
-                    <span className="text-slate-500 text-sm ml-2">({c.workspaceId})</span>
+                    <span className="text-[#6b6b6b] text-[13px] ml-2">({c.workspaceId})</span>
                   )}
                 </span>
                 <button
                   onClick={() => handleRemove(c.id)}
-                  className="text-red-400 hover:text-red-300 text-sm"
+                  className="text-[13px] text-[#eb5757] hover:text-[#c53030] transition"
                 >
                   Remove
                 </button>
@@ -116,18 +120,18 @@ export default function SettingsPage() {
           </ul>
         </section>
         <section>
-          <h2 className="text-lg font-semibold mb-2">Webhook URLs</h2>
-          <p className="text-sm text-slate-500 mb-2">
+          <h2 className="text-[15px] font-semibold mb-2 text-[#37352f]">Webhook URLs</h2>
+          <p className="text-[13px] text-[#6b6b6b] mb-2">
             Configure these URLs in your Instantly and PlusVibe dashboard to receive real-time
             replies.
           </p>
-          <div className="space-y-2 text-sm font-mono bg-slate-900 p-3 rounded">
-            <div>
-              <span className="text-slate-500">Instantly:</span>{" "}
+          <div className="space-y-2 text-[13px] font-mono bg-[rgba(55,53,47,0.06)] p-4 rounded-md border border-[rgba(55,53,47,0.09)]">
+            <div className="text-[#37352f]">
+              <span className="text-[#6b6b6b]">Instantly:</span>{" "}
               {(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001")}/api/webhooks/instantly
             </div>
-            <div>
-              <span className="text-slate-500">PlusVibe:</span>{" "}
+            <div className="text-[#37352f]">
+              <span className="text-[#6b6b6b]">PlusVibe:</span>{" "}
               {(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001")}/api/webhooks/plusvibe
             </div>
           </div>
